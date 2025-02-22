@@ -29,7 +29,7 @@ You need a directory with a `package.json` at least.
   "files": [
     "your-package/**/*"
   ],
-  "seed": "your-storage-conn",
+  "conn": "your-storage-conn",
   "hash": "your-package-hash"
 }
 ```
@@ -42,4 +42,14 @@ epii-deploy install [your-package-path]
 
 epii-deploy publish
 epii-deploy publish [your-package-path]
+```
+
+## Connection String
+
+```Bash
+simple-file
+file://your-path-to-package-dir
+
+alibabacloud-oss
+oss://endpoint/bucket/object-path-prefix?accessKeyId&accessKeySecret&securityToken
 ```

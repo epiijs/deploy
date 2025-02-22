@@ -5,6 +5,7 @@ package-lock.json
 src/**/*.js
 build/
 coverage/
+test/fixtures/simple-file/storage/
 
 # Logs
 logs

@@ -3,22 +3,23 @@
 import fs from 'fs/promises';
 import path from 'path';
 
+import {
+  install,
+  publish
+} from '../build/index.js';
+
 async function main() {
   const args = process.argv.slice(2);
   const action = args[0];
-  const target = action !== 'help' ? args[1] || process.cwd() : '';
+  const target = path.resolve(args[1] || process.cwd());
 
   switch (action) {
     case 'install': {
-      console.log('install', target);
-      // const {
-      //   default: appConfig
-      // } = await import('../build/config/index.js');
-      // TODO: 
+      install(target);
       break;
     }
     case 'publish': {
-      console.log('publish', target);
+      publish(target);
       break;
     }
     default: {
