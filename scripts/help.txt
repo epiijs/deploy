@@ -1,0 +1,10 @@
+  
+  epii-deploy [args]
+  
+  example
+  
+    epii-deploy install
+    epii-deploy install [your-path]
+
+    epii-deploy publish
+    epii-deploy publish [your-path]
