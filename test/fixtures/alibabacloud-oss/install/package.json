@@ -1,5 +1,5 @@
 {
   "name": "test-alibabacloud-oss",
-  "version": "0.1.0",
-  "conn": "oss://oss-cn-wulanchabu.aliyuncs.com/test-epii-deploy?accessKeyId=&accessKeySecret="
+  "version": "0.2.0",
+  "remote": "oss://oss-cn-wulanchabu.aliyuncs.com/test-epii-deploy"
 }

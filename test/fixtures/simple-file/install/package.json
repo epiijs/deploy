@@ -1,5 +1,5 @@
 {
   "name": "test-simple-file",
-  "version": "0.1.0",
-  "conn": "file://~/.test-epii-deploy/simple-file"
+  "version": "0.2.0",
+  "remote": "file://~/.test-epii-deploy/simple-file"
 }

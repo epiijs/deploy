@@ -2,13 +2,26 @@ import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
 
-import { IPackageConfig } from './package.js';
+import {
+  importPackageSecret,
+  IPackageConfig,
+  IPackageSecret
+} from './package.js';
+
+async function readyPackageCacheDir(): Promise<string> {
+  const packageCacheDir = path.join(os.homedir(), '.epii-deploy-cache');
+  await fs.mkdir(packageCacheDir, { recursive: true }).catch(error => {
+    console.error('readyPackageCacheDir', error);
+  });
+  return packageCacheDir;
+}
 
 interface IStorageOptions {
   fileName: string;
   fileHash?: string;
-  connRest: string;
-  cacheDir: string;
+  localDir: string;
+  remoteURI: string;
+  credential?: IPackageSecret;
 }
 
 interface IStorageProvider {
@@ -17,17 +30,9 @@ interface IStorageProvider {
 }
 
 interface IStorageBridge {
-  getCacheDir: () => string;
+  getLocalFilePath: (fileName: string) => string;
   pullObject: (options: Pick<IStorageOptions, 'fileName' | 'fileHash'>) => Promise<string>;
   pushObject: (options: Pick<IStorageOptions, 'fileName' | 'fileHash'>) => Promise<void>;
-}
-
-async function readyPackageCacheDir(): Promise<string> {
-  const packageCacheDir = path.join(os.homedir(), '.epii-deploy-cache');
-  await fs.mkdir(packageCacheDir, { recursive: true }).catch(error => {
-    console.error('readyPackageCacheDir', error);
-  });
-  return packageCacheDir;
 }
 
 const StorageProviderSchemeAlias: Record<string, string> = {
@@ -39,19 +44,26 @@ const StorageProviderSchemeAlias: Record<string, string> = {
   oss: 'alibabacloud-oss'
 };
 
-async function createStorageBridge(config: Pick<IPackageConfig, 'conn'>): Promise<IStorageBridge> {
-  const packageCacheDir = await readyPackageCacheDir();
-  const [scheme, connRest] = config.conn.split('://');
+async function createStorageBridge(config: Pick<IPackageConfig, 'root' | 'remote' | 'secret'>): Promise<IStorageBridge> {
+  // ready package cache dir as local dir
+  const localDir = await readyPackageCacheDir();
+
+  // parse config.remote and import storage provider
+  const [scheme] = config.remote.split('://');
   const providerName = StorageProviderSchemeAlias[scheme] || scheme;
   if (!providerName) {
-    throw new Error(`invalid conn, scheme [${scheme}] not supported`);
+    throw new Error(`invalid remote, scheme [${scheme}] not supported`);
   }
   // TODO: support custom provider future
   const provider: IStorageProvider = (await import(`./providers/${providerName}.js`)).default;
+
+  // parse config.secret and import storage credential
+  const secretless = scheme === 'file';
+  const packageSecret = secretless ? undefined : await importPackageSecret(config.root, config.secret);
+
   return {
-    // get cache dir
-    getCacheDir: (): string => {
-      return packageCacheDir;
+    getLocalFilePath: (fileName: string): string => {
+      return path.join(localDir, fileName);
     },
 
     // pull object from remote storage to local cache
@@ -59,8 +71,9 @@ async function createStorageBridge(config: Pick<IPackageConfig, 'conn'>): Promis
       const cacheFilePath = await provider.pullObject({
         fileName,
         fileHash,
-        connRest,
-        cacheDir: packageCacheDir
+        localDir,
+        remoteURI: config.remote,
+        credential: packageSecret
       });
       console.log('=> [pullObject]');
       return cacheFilePath;
@@ -71,8 +84,9 @@ async function createStorageBridge(config: Pick<IPackageConfig, 'conn'>): Promis
       await provider.pushObject({
         fileName,
         fileHash,
-        connRest,
-        cacheDir: packageCacheDir
+        localDir,
+        remoteURI: config.remote,
+        credential: packageSecret
       });
       console.log('=> [pushObject]');
     }

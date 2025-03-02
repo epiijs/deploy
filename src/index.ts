@@ -1,5 +1,3 @@
-import path from 'path';
-
 import {
   importPackageConfig,
   buildPackageFileName,
@@ -15,28 +13,29 @@ async function install(target: string | IPackageConfig): Promise<void> {
   const packageConfig = typeof target === 'string' ? await importPackageConfig(target) : target;
   const storageBridge = await createStorageBridge(packageConfig);
   const packageFileName = buildPackageFileName(packageConfig);
-  const packageCacheFilePath = await storageBridge.pullObject({
+  const packageFilePath = await storageBridge.pullObject({
     fileName: packageFileName,
     fileHash: packageConfig.hash
   });
   await extractTAR({
-    tarFile: packageCacheFilePath,
+    tarFile: packageFilePath,
     fileDir: packageConfig.root
   });
-  // TODO: merge package.json instead of overwrite
-  // TODO: merge dependencies to parent package.json
 }
 
 async function publish(target: string | IPackageConfig): Promise<void> {
   const packageConfig = typeof target === 'string' ? await importPackageConfig(target) : target;
-  const packageFileName = buildPackageFileName(packageConfig);
   const storageBridge = await createStorageBridge(packageConfig);
+  const packageFileName = buildPackageFileName(packageConfig);
+  const packageFilePath = storageBridge.getLocalFilePath(packageFileName);
   await archiveTAR({
-    tarFile: path.join(storageBridge.getCacheDir(), packageFileName),
-    fileDir: packageConfig.root
+    tarFile: packageFilePath,
+    fileDir: packageConfig.root,
+    ignore: ['package.json', packageConfig.secret]
   });
   await storageBridge.pushObject({
-    fileName: packageFileName
+    fileName: packageFileName,
+    fileHash: packageConfig.hash
   });
 }
 

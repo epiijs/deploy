@@ -5,46 +5,42 @@ import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3
 
 import { IStorageOptions } from '../storage.js';
 
-function parseConnForOSS(conn: string): {
+function parseOSSConfig(remoteURIText: string): {
   endpoint: string;
   regionId: string;
   bucketName: string;
   objectPathPrefix: string;
-  accessKeyId: string;
-  accessKeySecret: string;
-  securityToken: string;
 } {
-  const connURL = new URL('any://' + conn);
-  const endpoint = connURL.host;
+  const remoteURI = new URL(remoteURIText);
+  const endpoint = remoteURI.host;
   const regionId = endpoint.split('.')[0];
-  const connPaths = connURL.pathname.split('/').filter(Boolean);
-  const bucketName = connPaths[0];
-  const objectPathPrefix = connPaths.slice(1).join('/');
-  const accessKeyId = connURL.searchParams.get('accessKeyId') || '';
-  const accessKeySecret = connURL.searchParams.get('accessKeySecret') || '';
-  const securityToken = connURL.searchParams.get('securityToken') || '';
+  const remoteURIPaths = remoteURI.pathname.split('/').filter(Boolean);
+  const bucketName = remoteURIPaths[0];
+  const objectPathPrefix = remoteURIPaths.slice(1).join('/');
   return {
     endpoint,
     regionId,
     bucketName,
-    objectPathPrefix,
-    accessKeyId,
-    accessKeySecret,
-    securityToken
+    objectPathPrefix
   };
 }
 
 async function pullObject(options: IStorageOptions): Promise<string> {
-  const { fileName, connRest, cacheDir } = options;
+  const { fileName, localDir, remoteURI, credential = {} } = options;
   const {
     endpoint,
     regionId,
     bucketName,
-    objectPathPrefix,
+    objectPathPrefix
+  } = parseOSSConfig(remoteURI);
+  const {
     accessKeyId,
     accessKeySecret,
     securityToken
-  } = parseConnForOSS(connRest);
+  } = credential;
+  if (!accessKeyId || !accessKeySecret) {
+    throw new Error('accessKeyId or accessKeySecret required');
+  }
   const s3Client = new S3Client({
     region: regionId,
     endpoint: `https://${endpoint}`,
@@ -63,24 +59,27 @@ async function pullObject(options: IStorageOptions): Promise<string> {
     throw new Error('no response body');
   }
   const buffer = await response.Body.transformToByteArray();
-  const localFilePath = path.join(cacheDir, fileName);
+  const localFilePath = path.join(localDir, fileName);
   await fs.writeFile(localFilePath, buffer);
   return localFilePath;
 }
 
 async function pushObject(options: IStorageOptions): Promise<string> {
-  const { fileName, connRest, cacheDir } = options;
+  const { fileName, localDir, remoteURI, credential = {} } = options;
   const {
     endpoint,
     regionId,
     bucketName,
-    objectPathPrefix,
+    objectPathPrefix
+  } = parseOSSConfig(remoteURI);
+  const {
     accessKeyId,
     accessKeySecret,
     securityToken
-  } = parseConnForOSS(connRest);
-  const localFilePath = path.join(cacheDir, fileName);
-  const fileBuffer = await fs.readFile(localFilePath);
+  } = credential;
+  if (!accessKeyId || !accessKeySecret) {
+    throw new Error('accessKeyId or accessKeySecret required');
+  }
   const s3Client = new S3Client({
     region: regionId,
     endpoint: `https://${endpoint}`,
@@ -90,6 +89,8 @@ async function pushObject(options: IStorageOptions): Promise<string> {
       sessionToken: securityToken
     }
   });
+  const localFilePath = path.join(localDir, fileName);
+  const fileBuffer = await fs.readFile(localFilePath);
   const command = new PutObjectCommand({
     Bucket: bucketName,
     Key: path.join(objectPathPrefix, fileName),

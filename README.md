@@ -6,8 +6,7 @@ A toolkit for deploying any packages anywhere.
 
 `@epiijs/deploy` will allow you to publish or install packages to or from any storages.
 
-Of course you can use Alibaba Cloud or AWS S3 as your own storage provider.
-`WIP`
+Of course you can use Alibaba Cloud or AWS S3 (WIP) as your own storage provider.
 
 # Install
 
@@ -25,12 +24,10 @@ You need a directory with a `package.json` at least.
 
 ```JSON
 {
-  "name": "your-own",
-  "files": [
-    "your-package/**/*"
-  ],
-  "conn": "your-storage-conn",
-  "hash": "your-package-hash"
+  "name": "any-package-name",
+  "version": "any-package-version",
+  "remote": "your-remote-storage",
+  "hash": "this-package-hash-but-not-support-yet"
 }
 ```
 
@@ -44,12 +41,31 @@ epii-deploy publish
 epii-deploy publish [your-package-path]
 ```
 
-## Connection String
+## Remote URI
 
 ```Bash
 simple-file
 file://your-path-to-package-dir
 
 alibabacloud-oss
-oss://endpoint/bucket/object-path-prefix?accessKeyId&accessKeySecret&securityToken
+oss://endpoint/bucket/object-path-prefix
+```
+
+## Secret
+
+You should keep your credential in KMS services or temp memory like ENV instead of Git repository. 
+
+To use ENV keep secret, you can create a secret file `package.secret.json`.
+
+```JSON
+{
+  "accessKeyId": "$YOUR_ACCESS_KEY_ID_ENV_NAME",
+  "accessKeySecret": "$YOUR_ACCESS_KEY_SECRET_ENV_NAME"
+}
+```
+
+And then set ENV while using CLI.
+
+```Bash
+YOUR_ACCESS_KEY_ID_ENV_NAME=X YOUR_ACCESS_KEY_SECRET_ENV_NAME=Y epii-deploy what-you-want-to-do
 ```

@@ -6,6 +6,7 @@ src/**/*.js
 build/
 coverage/
 test/fixtures/simple-file/storage/
+test/fixtures/**/package.secret.json
 
 # Logs
 logs
