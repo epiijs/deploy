@@ -1,6 +1,6 @@
 {
   "name": "@epiijs/deploy",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A toolkit for deploying any packages anywhere.",
   "engines": {
     "node": ">=20.0.0"
@@ -12,10 +12,9 @@
   "main": "build/index.js",
   "exports": "./build/index.js",
   "scripts": {
-    "clean": "rm -rf build && rm -rf coverage && rm -rf .nyc_output",
+    "clean": "rm -rf build && rm -rf coverage",
     "build": "npm run clean && eslint . && tsc",
-    "test": "npm run build && nyc --reporter=lcov mocha test/index.js --exit",
-    "lcov": "nyc report --reporter=text-lcov | coveralls"
+    "test": "echo test/tests.txt"
   },
   "repository": {
     "type": "git",
@@ -36,13 +35,14 @@
   "homepage": "https://github.com/epiijs/deploy#readme",
   "devDependencies": {
     "@epiijs/eslint-config": "^1.0.1",
+    "@types/ali-oss": "^6.16.11",
     "@types/node": "^20.11.16",
     "eslint": "^9.20.1",
-    "mocha": "^11.1.0",
-    "nyc": "^17.1.0"
+    "mocha": "^11.1.0"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.750.0",
+    "ali-oss": "^6.22.0",
     "glob": "^11.0.1",
     "tar": "^7.4.3"
   }

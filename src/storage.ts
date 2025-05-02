@@ -59,7 +59,7 @@ async function createStorageBridge(config: Pick<IPackageConfig, 'root' | 'remote
 
   // parse config.secret and import storage credential
   const secretless = scheme === 'file';
-  const packageSecret = secretless ? undefined : await importPackageSecret(config.root, config.secret);
+  const packageSecret = secretless ? undefined : await importPackageSecret(config);
 
   return {
     getLocalFilePath: (fileName: string): string => {

@@ -1,5 +1,5 @@
-epii-deploy install test/fixtures/simple-file/install
 epii-deploy publish test/fixtures/simple-file/publish
+epii-deploy install test/fixtures/simple-file/install
 
-epii-deploy install test/fixtures/alibabacloud-oss/install
 epii-deploy publish test/fixtures/alibabacloud-oss/publish
+epii-deploy install test/fixtures/alibabacloud-oss/install

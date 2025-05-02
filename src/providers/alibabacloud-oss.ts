@@ -1,11 +1,11 @@
-import fs from 'fs/promises';
+import fs from 'fs';
 import path from 'path';
 
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import OSSClient from 'ali-oss';
 
 import { IStorageOptions } from '../storage.js';
 
-function parseOSSConfig(remoteURIText: string): {
+function parseConfig(remoteURIText: string): {
   endpoint: string;
   regionId: string;
   bucketName: string;
@@ -32,7 +32,7 @@ async function pullObject(options: IStorageOptions): Promise<string> {
     regionId,
     bucketName,
     objectPathPrefix
-  } = parseOSSConfig(remoteURI);
+  } = parseConfig(remoteURI);
   const {
     accessKeyId,
     accessKeySecret,
@@ -41,26 +41,18 @@ async function pullObject(options: IStorageOptions): Promise<string> {
   if (!accessKeyId || !accessKeySecret) {
     throw new Error('accessKeyId or accessKeySecret required');
   }
-  const s3Client = new S3Client({
+  const ossClient = new OSSClient({
     region: regionId,
     endpoint: `https://${endpoint}`,
-    credentials: {
-      accessKeyId,
-      secretAccessKey: accessKeySecret,
-      sessionToken: securityToken
-    }
+    accessKeyId,
+    accessKeySecret,
+    stsToken: securityToken,
+    bucket: bucketName
   });
-  const command = new GetObjectCommand({
-    Bucket: bucketName,
-    Key: path.join(objectPathPrefix, fileName)
-  });
-  const response = await s3Client.send(command);
-  if (!response.Body) {
-    throw new Error('no response body');
-  }
-  const buffer = await response.Body.transformToByteArray();
+  const remoteFilePath = path.join(objectPathPrefix, fileName);
   const localFilePath = path.join(localDir, fileName);
-  await fs.writeFile(localFilePath, buffer);
+  const response = await ossClient.get(remoteFilePath, localFilePath);
+  console.log('=> [pullObject] cloud response', response);
   return localFilePath;
 }
 
@@ -71,7 +63,7 @@ async function pushObject(options: IStorageOptions): Promise<string> {
     regionId,
     bucketName,
     objectPathPrefix
-  } = parseOSSConfig(remoteURI);
+  } = parseConfig(remoteURI);
   const {
     accessKeyId,
     accessKeySecret,
@@ -80,24 +72,19 @@ async function pushObject(options: IStorageOptions): Promise<string> {
   if (!accessKeyId || !accessKeySecret) {
     throw new Error('accessKeyId or accessKeySecret required');
   }
-  const s3Client = new S3Client({
+  const ossClient = new OSSClient({
     region: regionId,
     endpoint: `https://${endpoint}`,
-    credentials: {
-      accessKeyId,
-      secretAccessKey: accessKeySecret,
-      sessionToken: securityToken
-    }
+    accessKeyId,
+    accessKeySecret,
+    stsToken: securityToken,
+    bucket: bucketName
   });
+  const remoteFilePath = path.join(objectPathPrefix, fileName);
   const localFilePath = path.join(localDir, fileName);
-  const fileBuffer = await fs.readFile(localFilePath);
-  const command = new PutObjectCommand({
-    Bucket: bucketName,
-    Key: path.join(objectPathPrefix, fileName),
-    Body: fileBuffer
-  });
-  const response = await s3Client.send(command);
-  console.log('=> [pushObject] oss response', response);
+  const fileStream = fs.createReadStream(localFilePath);
+  const response = await ossClient.putStream(remoteFilePath, fileStream);
+  console.log('=> [pushObject] cloud response', response);
   return localFilePath;
 }
 

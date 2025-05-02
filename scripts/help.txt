@@ -1,5 +1,7 @@
   
-  epii-deploy [args]
+  @epiijs/deploy ${version}
+
+  command: epii-deploy [args]
   
   example
   

@@ -2,6 +2,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 import {
   install,
@@ -23,8 +24,10 @@ async function main() {
       break;
     }
     default: {
-      const dirName = getDirNameByImportMeta(import.meta);
-      const helpText = await fs.readFile(path.join(dirName, './help.txt'), 'utf-8');
+      const dirname = path.dirname(fileURLToPath(import.meta.url));
+      const packageJSON = JSON.parse(await fs.readFile(path.join(dirname, '../package.json'), 'utf-8'));
+      const helpText = (await fs.readFile(path.join(dirname, './help.txt'), 'utf-8'))
+        .replace('${version}', packageJSON.version);
       console.log(helpText);
       break;
     }

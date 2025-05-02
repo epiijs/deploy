@@ -27,7 +27,8 @@ You need a directory with a `package.json` at least.
   "name": "any-package-name",
   "version": "any-package-version",
   "remote": "your-remote-storage",
-  "hash": "this-package-hash-but-not-support-yet"
+  "secret": "your-remote-secret-file-name-/-package.secret.json-by-default",
+  "ignore": "your-remote-ignore-file-name-/-package.ignore.json-by-default"
 }
 ```
 
@@ -49,6 +50,9 @@ file://your-path-to-package-dir
 
 alibabacloud-oss
 oss://endpoint/bucket/object-path-prefix
+
+aws-s3
+s3://endpoint/bucket/object-path-prefix
 ```
 
 ## Secret
@@ -68,4 +72,14 @@ And then set ENV while using CLI.
 
 ```Bash
 YOUR_ACCESS_KEY_ID_ENV_NAME=X YOUR_ACCESS_KEY_SECRET_ENV_NAME=Y epii-deploy what-you-want-to-do
+```
+
+## Ignore Files
+
+You can list all ignored files (as `glob` format) in `package.ignore.json`.
+
+```JSON
+[
+  "some-file-to-ignore"
+]
 ```

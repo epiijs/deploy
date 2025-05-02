@@ -20,6 +20,7 @@ interface IPackageConfig {
   hash?: string;
   remote: string;
   secret: string;
+  ignore: string;
 }
 
 interface IPackageSecret {
@@ -54,14 +55,15 @@ async function importPackageConfig(root: string): Promise<IPackageConfig> {
   checkConfigProperty('version');
   checkConfigProperty('remote');
   checkConfigProperty('secret', 'package.secret.json');
+  checkConfigProperty('ignore', 'package.ignore.json');
   maybeConfig.root = root;
   console.log('=> [importConfig]', maybeConfig.name, maybeConfig.version);
   return maybeConfig as IPackageConfig;
 }
 
-async function importPackageSecret(root: string, secret?: string): Promise<IPackageSecret> {
-  const secretFileName = secret || 'package.secret.json';
-  const secretFilePath = `${root}/${secretFileName}`;
+async function importPackageSecret(config: Pick<IPackageConfig, 'root' | 'secret'>): Promise<IPackageSecret> {
+  const secretFileName = config.secret;
+  const secretFilePath = `${config.root}/${secretFileName}`;
   const secretFileContent = await fs.readFile(secretFilePath, 'utf8').catch(error => {
     console.error(error);
     throw new Error(`failed to read ${secretFilePath}`);
@@ -86,6 +88,19 @@ async function importPackageSecret(root: string, secret?: string): Promise<IPack
   return maybeSecret as IPackageSecret;
 }
 
+async function importPackageIgnore(config: Pick<IPackageConfig, 'root' | 'ignore'>): Promise<string[]> {
+  const ignoreFileName = config.ignore;
+  const ignoreFilePath = `${config.root}/${ignoreFileName}`;
+  const ignoreFileContent = await fs.readFile(ignoreFilePath, 'utf8').catch(error => {
+    console.error(error);
+    // throw new Error(`failed to read ${ignoreFilePath}`);
+    return '';
+  });
+  const maybeIgnore = ((tryParseJSON(ignoreFileContent) as string[] | undefined) || []).filter(e => e && typeof e === 'string');
+  console.log('=> [importIgnore]', ignoreFileName);
+  return maybeIgnore;
+}
+
 async function archiveTAR({ tarFile, fileDir, ignore }: {
   tarFile: string;
   fileDir: string;
@@ -108,6 +123,7 @@ export {
   buildPackageFileName,
   importPackageConfig,
   importPackageSecret,
+  importPackageIgnore,
   archiveTAR,
   extractTAR
 };
