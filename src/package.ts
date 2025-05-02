@@ -28,7 +28,7 @@ interface IPackageSecret {
 }
 
 function buildPackageFileName(config: Pick<IPackageConfig, 'name' | 'version'>): string {
-  return `${config.name}@${config.version}.tar.gz`;
+  return `${config.name.replace('/', '-')}@${config.version}.tar.gz`;
 }
 
 async function importPackageConfig(root: string): Promise<IPackageConfig> {
@@ -108,7 +108,11 @@ async function archiveTAR({ tarFile, fileDir, ignore }: {
 }): Promise<void> {
   const files = await glob('**/*', { cwd: fileDir, ignore });
   await tar.create({ file: tarFile, gzip: true, cwd: fileDir }, files);
-  console.log('=> [archiveTAR]', tarFile);
+  const stat = await fs.stat(tarFile).catch(error => {
+    console.error(error);
+    return undefined;
+  });
+  console.log('=> [archiveTAR]', tarFile, stat?.size);
 }
 
 async function extractTAR({ tarFile, fileDir }: {

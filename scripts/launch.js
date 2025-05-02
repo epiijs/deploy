@@ -13,6 +13,7 @@ async function main() {
   const args = process.argv.slice(2);
   const action = args[0];
   const target = path.resolve(args[1] || process.cwd());
+  console.log(`target ${target}`);
 
   switch (action) {
     case 'install': {
