@@ -3,9 +3,7 @@ import os from 'os';
 import path from 'path';
 
 import {
-  importPackageSecret,
-  IPackageConfig,
-  IPackageSecret
+  IPackageConfig
 } from './package.js';
 
 async function readyPackageCacheDir(): Promise<string> {
@@ -21,7 +19,7 @@ interface IStorageOptions {
   fileHash?: string;
   localDir: string;
   remoteURI: string;
-  credential?: IPackageSecret;
+  credential?: IPackageConfig['deploy']['secret'];
 }
 
 interface IStorageProvider {
@@ -44,22 +42,18 @@ const StorageProviderSchemeAlias: Record<string, string> = {
   oss: 'alibabacloud-oss'
 };
 
-async function createStorageBridge(config: Pick<IPackageConfig, 'root' | 'remote' | 'secret'>): Promise<IStorageBridge> {
+async function createStorageBridge(config: Pick<IPackageConfig, 'root' | 'deploy'>): Promise<IStorageBridge> {
   // ready package cache dir as local dir
   const localDir = await readyPackageCacheDir();
 
   // parse config.remote and import storage provider
-  const [scheme] = config.remote.split('://');
+  const [scheme] = config.deploy.remote.split('://');
   const providerName = StorageProviderSchemeAlias[scheme] || scheme;
   if (!providerName) {
     throw new Error(`invalid remote, scheme [${scheme}] not supported`);
   }
   // TODO: support custom provider future
   const provider: IStorageProvider = (await import(`./providers/${providerName}.js`)).default;
-
-  // parse config.secret and import storage credential
-  const secretless = scheme === 'file';
-  const packageSecret = secretless ? undefined : await importPackageSecret(config);
 
   return {
     getLocalFilePath: (fileName: string): string => {
@@ -72,8 +66,8 @@ async function createStorageBridge(config: Pick<IPackageConfig, 'root' | 'remote
         fileName,
         fileHash,
         localDir,
-        remoteURI: config.remote,
-        credential: packageSecret
+        remoteURI: config.deploy.remote,
+        credential: config.deploy.secret
       });
       console.log('=> [pullObject]');
       return cacheFilePath;
@@ -85,8 +79,8 @@ async function createStorageBridge(config: Pick<IPackageConfig, 'root' | 'remote
         fileName,
         fileHash,
         localDir,
-        remoteURI: config.remote,
-        credential: packageSecret
+        remoteURI: config.deploy.remote,
+        credential: config.deploy.secret
       });
       console.log('=> [pushObject]');
     }

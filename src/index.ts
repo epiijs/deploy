@@ -3,8 +3,7 @@ import {
   buildPackageFileName,
   archiveTAR,
   extractTAR,
-  IPackageConfig,
-  importPackageIgnore
+  IPackageConfig
 } from './package.js';
 import {
   createStorageBridge
@@ -29,11 +28,10 @@ async function publish(target: string | IPackageConfig): Promise<void> {
   const storageBridge = await createStorageBridge(packageConfig);
   const packageFileName = buildPackageFileName(packageConfig);
   const packageFilePath = storageBridge.getLocalFilePath(packageFileName);
-  const packageIgnore = (await importPackageIgnore(packageConfig)).concat(['package.json', packageConfig.secret]);
   await archiveTAR({
     tarFile: packageFilePath,
     fileDir: packageConfig.root,
-    ignore: packageIgnore
+    ignore: packageConfig.deploy.ignore
   });
   await storageBridge.pushObject({
     fileName: packageFileName,

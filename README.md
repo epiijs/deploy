@@ -22,13 +22,26 @@ npm install --global @epiijs/deploy
 
 You need a directory with a `package.json` at least.
 
+`package.json`
+
 ```JSON
 {
   "name": "any-package-name",
   "version": "any-package-version",
+  "deploy": "package.deploy.json"
+}
+```
+
+`package.deploy.json`
+```JSON
+{
   "remote": "your-remote-storage",
-  "secret": "your-remote-secret-file-name-/-package.secret.json-by-default",
-  "ignore": "your-remote-ignore-file-name-/-package.ignore.json-by-default"
+  "secret": {
+    "some-secret-key": "some-secret-value"
+  },
+  "ignore": [
+    "your-ignored-file"
+  ]
 }
 ```
 

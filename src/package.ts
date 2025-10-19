@@ -11,67 +11,51 @@ function tryParseJSON(text: string): unknown | undefined {
   }
 }
 
+interface IPackageDeploy {
+  remote: string;
+  bundle: 'default' | 'never';
+  secret: {
+    [key: string]: string | undefined;
+  };
+  ignore: string[];
+}
+
+interface IPackageConfigInput {
+  name: string;
+  version: string;
+  deploy: string;
+}
+
 interface IPackageConfig {
   // follow npm definition
   name: string;
   version: string;
+
   // @epiijs/deploy
   root: string;
   hash?: string;
-  remote: string;
-  secret: string;
-  ignore: string;
-}
-
-interface IPackageSecret {
-  [key: string]: string | undefined;
+  deploy: IPackageDeploy;
 }
 
 function buildPackageFileName(config: Pick<IPackageConfig, 'name' | 'version'>): string {
   return `${config.name.replace('/', '-')}@${config.version}.tar.gz`;
 }
 
-async function importPackageConfig(root: string): Promise<IPackageConfig> {
-  const configFileName = 'package.json';
-  const configFilePath = `${root}/${configFileName}`;
-  const configFileContent = await fs.readFile(configFilePath, 'utf8').catch(error => {
+async function importPackageDeploy(config: {
+  root: string;
+  deploy: string;
+}): Promise<IPackageDeploy> {
+  const deployFileName = config.deploy;
+  const deployFilePath = `${config.root}/${deployFileName}`;
+  const deployFileContent = await fs.readFile(deployFilePath, 'utf8').catch(error => {
     console.error(error);
-    throw new Error(`failed to read ${configFilePath}`);
+    throw new Error(`failed to read ${deployFilePath}`);
   });
-  const maybeConfig = tryParseJSON(configFileContent) as Partial<IPackageConfig> | undefined;
-  if (!maybeConfig) {
-    throw new Error(`invalid ${configFileName}, json format required`);
+  const maybeDeploy = tryParseJSON(deployFileContent) as Partial<IPackageDeploy> | undefined;
+  if (!maybeDeploy) {
+    throw new Error(`invalid ${deployFileName}, json format required`);
   }
-  const checkConfigProperty = (key: keyof IPackageConfig, value?: string): void => {
-    if (!maybeConfig[key]) {
-      if (value) {
-        maybeConfig[key] = value;
-      } else {
-        throw new Error(`invalid ${configFileName}, ${key} required`);
-      }
-    }
-  };
-  checkConfigProperty('name');
-  checkConfigProperty('version');
-  checkConfigProperty('remote');
-  checkConfigProperty('secret', 'package.secret.json');
-  checkConfigProperty('ignore', 'package.ignore.json');
-  maybeConfig.root = root;
-  console.log('=> [importConfig]', maybeConfig.name, maybeConfig.version);
-  return maybeConfig as IPackageConfig;
-}
-
-async function importPackageSecret(config: Pick<IPackageConfig, 'root' | 'secret'>): Promise<IPackageSecret> {
-  const secretFileName = config.secret;
-  const secretFilePath = `${config.root}/${secretFileName}`;
-  const secretFileContent = await fs.readFile(secretFilePath, 'utf8').catch(error => {
-    console.error(error);
-    throw new Error(`failed to read ${secretFilePath}`);
-  });
-  const maybeSecret = tryParseJSON(secretFileContent) as Partial<IPackageSecret> | undefined;
-  if (!maybeSecret) {
-    throw new Error(`invalid ${secretFileName}, json format required`);
-  }
+  const maybeSecret = maybeDeploy.secret;
   for (const key in maybeSecret) {
     const value = maybeSecret[key];
     if (value?.startsWith('$')) {
@@ -84,21 +68,50 @@ async function importPackageSecret(config: Pick<IPackageConfig, 'root' | 'secret
       }
     }
   }
-  console.log('=> [importSecret]', secretFileName);
-  return maybeSecret as IPackageSecret;
+  const maybeIgnore = maybeDeploy.ignore || [];
+  ['package.json', 'package.deploy.json'].forEach(e => {
+    if (!maybeIgnore.includes(e)) {
+      maybeIgnore.push(e);
+    }
+  });
+  maybeDeploy.ignore = maybeIgnore;
+  console.log('=> [importDeploy]', deployFileName);
+  return maybeDeploy as IPackageDeploy;
 }
 
-async function importPackageIgnore(config: Pick<IPackageConfig, 'root' | 'ignore'>): Promise<string[]> {
-  const ignoreFileName = config.ignore;
-  const ignoreFilePath = `${config.root}/${ignoreFileName}`;
-  const ignoreFileContent = await fs.readFile(ignoreFilePath, 'utf8').catch(error => {
+async function importPackageConfig(root: string): Promise<IPackageConfig> {
+  const configFileName = 'package.json';
+  const configFilePath = `${root}/${configFileName}`;
+  const configFileContent = await fs.readFile(configFilePath, 'utf8').catch(error => {
     console.error(error);
-    // throw new Error(`failed to read ${ignoreFilePath}`);
-    return '';
+    throw new Error(`failed to read ${configFilePath}`);
   });
-  const maybeIgnore = ((tryParseJSON(ignoreFileContent) as string[] | undefined) || []).filter(e => e && typeof e === 'string');
-  console.log('=> [importIgnore]', ignoreFileName);
-  return maybeIgnore;
+  const inputConfig = tryParseJSON(configFileContent) as IPackageConfigInput | undefined;
+  if (!inputConfig) {
+    throw new Error(`invalid ${configFileName}, json format required`);
+  }
+  const checkConfigProperty = (key: keyof IPackageConfigInput, value?: string): void => {
+    if (!inputConfig[key]) {
+      if (value) {
+        inputConfig[key] = value;
+      } else {
+        throw new Error(`invalid ${configFileName}, ${key} required`);
+      }
+    }
+  };
+  checkConfigProperty('name');
+  checkConfigProperty('version');
+  checkConfigProperty('deploy', 'package.deploy.json');
+
+  const deploy = await importPackageDeploy({ root, deploy: inputConfig.deploy });
+  const maybeConfig: IPackageConfig = {
+    name: inputConfig.name,
+    version: inputConfig.version,
+    root,
+    deploy
+  };
+  console.log('=> [importConfig]', maybeConfig.name, maybeConfig.version);
+  return maybeConfig;
 }
 
 async function archiveTAR({ tarFile, fileDir, ignore }: {
@@ -126,13 +139,12 @@ async function extractTAR({ tarFile, fileDir }: {
 export {
   buildPackageFileName,
   importPackageConfig,
-  importPackageSecret,
-  importPackageIgnore,
+  importPackageDeploy,
   archiveTAR,
   extractTAR
 };
 
 export type {
   IPackageConfig,
-  IPackageSecret
+  IPackageDeploy
 };
