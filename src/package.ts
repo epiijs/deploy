@@ -119,7 +119,7 @@ async function archiveTAR({ tarFile, fileDir, ignore }: {
   fileDir: string;
   ignore: string[];
 }): Promise<void> {
-  const files = await glob('**/*', { cwd: fileDir, ignore });
+  const files = await glob('**/*', { cwd: fileDir, nodir: true, ignore });
   await tar.create({ file: tarFile, gzip: true, cwd: fileDir }, files);
   const stat = await fs.stat(tarFile).catch(error => {
     console.error(error);
