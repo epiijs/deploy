@@ -17,6 +17,10 @@ interface IPackageDeploy {
   secret: {
     [key: string]: string | undefined;
   };
+  ignores: string[];
+  /**
+   * @deprecated
+   */
   ignore: string[];
 }
 
@@ -68,13 +72,13 @@ async function importPackageDeploy(config: {
       }
     }
   }
-  const maybeIgnore = maybeDeploy.ignore || [];
+  const maybeIgnore = maybeDeploy.ignores || maybeDeploy.ignore || [];
   ['package.json', 'package.deploy.json'].forEach(e => {
     if (!maybeIgnore.includes(e)) {
       maybeIgnore.push(e);
     }
   });
-  maybeDeploy.ignore = maybeIgnore;
+  maybeDeploy.ignores = maybeIgnore;
   console.log('=> [importDeploy]', deployFileName);
   return maybeDeploy as IPackageDeploy;
 }

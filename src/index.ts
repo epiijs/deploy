@@ -31,7 +31,7 @@ async function publish(target: string | IPackageConfig): Promise<void> {
   await archiveTAR({
     tarFile: packageFilePath,
     fileDir: packageConfig.root,
-    ignore: packageConfig.deploy.ignore
+    ignore: packageConfig.deploy.ignores
   });
   await storageBridge.pushObject({
     fileName: packageFileName,

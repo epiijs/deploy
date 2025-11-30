@@ -28,6 +28,7 @@ You need a directory with a `package.json` at least.
 {
   "name": "any-package-name",
   "version": "any-package-version",
+  // deploy can be omitted
   "deploy": "package.deploy.json"
 }
 ```
@@ -39,7 +40,7 @@ You need a directory with a `package.json` at least.
   "secret": {
     "some-secret-key": "some-secret-value"
   },
-  "ignore": [
+  "ignores": [
     "your-ignored-file"
   ]
 }
@@ -89,10 +90,12 @@ YOUR_ACCESS_KEY_ID_ENV_NAME=X YOUR_ACCESS_KEY_SECRET_ENV_NAME=Y epii-deploy what
 
 ## Ignore Files
 
-You can list all ignored files (as `glob` format) in `package.ignore.json`.
+You can list all ignored files (as `glob` format) in `package.deploy.json`.
 
 ```JSON
 [
-  "some-file-to-ignore"
+  "ignored": [
+    "some-files-to-ignore"
+  ]
 ]
 ```
